@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:date_format/date_format.dart';
 
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
@@ -8,11 +9,13 @@ import 'aboutPage.dart';
 import 'editPage.dart';
 
 void main() {
+
   runApp(MaterialApp(
     home: Home(),
     debugShowCheckedModeBanner: false,
   ));
 }
+
 
 class Home extends StatefulWidget {
   @override
@@ -26,24 +29,29 @@ class _HomeState extends State<Home> {
   Map<String, dynamic> _lastRemove;
   int _lastRemovenPos;
 
+  static DateTime _data = new DateTime.now();//inicializa data com a data de hj
+  static var dataAtual = '${formatDate(_data, [dd, '/', mm, '/', yyyy])}';
+  var _dataAtual = dataAtual.toString();
+
   @override
   void initState() {
     super.initState();
-    _readData().then((data) {
+    _readData().then((dados) {
       setState(() {
-        _toDoList = List<Map<String, dynamic>>.from(json.decode(data));
+        _toDoList = List<Map<String, dynamic>>.from(json.decode(dados));
       });
     });
   }
 
   void _addToDo() {
     setState(() {
-      //stState atualiza o estado da tela sempre que colocar um novo elmento na lista
+      //setState atualiza o estado da tela sempre que colocar um novo elmento na lista
       Map<String, dynamic> newToDo = Map();
-      newToDo["title"] = _toDoController.text;
+      newToDo["title"] = _toDoController.text;//recebe o texto escrito
       _toDoController.text = "";
       newToDo["ok"] = false; //o novo elemento da lista vem desmarcado
       _toDoList.add(newToDo);
+      newToDo["date"] = _dataAtual;
       _saveData();
     });
   }
@@ -198,29 +206,18 @@ class _HomeState extends State<Home> {
     );
   }
 
+
   Widget buildItem(context, index) {
     return Dismissible(
       key: Key(DateTime.now().millisecondsSinceEpoch.toString()),
       background: slideRightBackground(),
       secondaryBackground: slideLeftBackground(),
 
-      /*
-      background: Container(
-        color: Colors.red,
-        child: Align(
-          alignment: Alignment(0.9, 0.0),
-          child: Icon(
-            Icons.delete,
-            color: Colors.white,
-          ),
-        ),
-      ),
-      */
-
       //direction: DismissDirection.endToStart,
       child: CheckboxListTile(
         activeColor: Colors.blueGrey,
         title: Text(_toDoList[index]["title"]),
+        subtitle: Text(_toDoList[index]["date"]),//_toDoList[index]["date"]
         value: _toDoList[index]["ok"],
         secondary: CircleAvatar(
             backgroundColor: _toDoList[index]["ok"] ? Colors.green : Colors.red,
@@ -290,16 +287,16 @@ class _HomeState extends State<Home> {
   Future<File> _getFile() async {
     //usa o async pq tem um await dentro
     final directory = await getApplicationDocumentsDirectory();
-    return File("${directory.path}/data.json");
+    return File("${directory.path}/dados.json");
   }
 
   Future<File> _saveData() async {
-    String data = json.encode(
+    String dados = json.encode(
         _toDoList); //pega os dados da lista, passa pra json e coloca em data
     final file =
         await _getFile(); //recebe o arquivo quando ele vier pela get file
     return file
-        .writeAsString(data); //escreve o dado como texto dentro do arquivo
+        .writeAsString(dados); //escreve o dado como texto dentro do arquivo
   }
 
   Future<String> _readData() async {
