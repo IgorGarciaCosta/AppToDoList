@@ -4,18 +4,24 @@ import 'package:date_format/date_format.dart';
 
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:provider/provider.dart';
 
 import 'aboutPage.dart';
 import 'editPage.dart';
+import 'package:lista_tarefas/theme.dart';
 
 void main() {
-
-  runApp(MaterialApp(
-    home: Home(),
-    debugShowCheckedModeBanner: false,
-  ));
+  //MaterialApp(
+  //home: Home(),
+  //debugShowCheckedModeBanner: false,
+  //),
+  runApp(
+    ChangeNotifierProvider<DynamicDarkMode>(
+      create: (_) => DynamicDarkMode(),
+      child: Home(),
+    ),
+  );
 }
-
 
 class Home extends StatefulWidget {
   @override
@@ -29,7 +35,7 @@ class _HomeState extends State<Home> {
   Map<String, dynamic> _lastRemove;
   int _lastRemovenPos;
 
-  static DateTime _data = new DateTime.now();//inicializa data com a data de hj
+  static DateTime _data = new DateTime.now(); //inicializa data com a data de hj
   static var dataAtual = '${formatDate(_data, [dd, '/', mm, '/', yyyy])}';
   var _dataAtual = dataAtual.toString();
 
@@ -47,7 +53,7 @@ class _HomeState extends State<Home> {
     setState(() {
       //setState atualiza o estado da tela sempre que colocar um novo elmento na lista
       Map<String, dynamic> newToDo = Map();
-      newToDo["title"] = _toDoController.text;//recebe o texto escrito
+      newToDo["title"] = _toDoController.text; //recebe o texto escrito
       _toDoController.text = "";
       newToDo["ok"] = false; //o novo elemento da lista vem desmarcado
       _toDoList.add(newToDo);
@@ -72,79 +78,103 @@ class _HomeState extends State<Home> {
     return null;
   }
 
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text("To do List"),
-        backgroundColor: Colors.blueGrey,
-        centerTitle: true,
-      ),
-      body: Column(
-        children: <Widget>[
-          Container(
-            padding: EdgeInsets.fromLTRB(17.0, 1.0, 7.0, 1.0),
-            child: Row(
-              children: <Widget>[
-                Expanded(
-                  child: TextField(
-                    controller: _toDoController,
-                    decoration: InputDecoration(
-                        labelText: "New Task",
-                        labelStyle: TextStyle(color: Colors.blueGrey)),
-                    maxLines: null,
-                  ),
-                ),
-                RaisedButton(
-                    color: Colors.blueGrey,
-                    child: Text("ADD"),
-                    textColor: Colors.white,
-                    onPressed: _addToDo)
-              ],
-            ),
-          ),
-          Expanded(
-              child: RefreshIndicator(
-            onRefresh: _refresh,
-            child: ListView.builder(
-                padding: EdgeInsets.only(top: 10.0),
-                itemCount: _toDoList.length,
-                itemBuilder: buildItem),
-          ))
-        ],
-      ),
-      drawer: Drawer(
-        // Add a ListView to the drawer. This ensures the user can scroll
-        // through the options in the drawer if there isn't enough vertical
-        // space to fit everything.
-        child: ListView(
-          // Important: Remove any padding from the ListView.
-          padding: EdgeInsets.zero,
-          children: <Widget>[
-            DrawerHeader(
-              child: Text('Drawer Header',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.white, fontSize: 18)),
-              decoration: BoxDecoration(
-                color: Colors.blueGrey,
-              ),
-            ),
-            ListTile(
-              title: Text('Item 1'),
-              onTap: () {
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              title: Text('About us'),
-              onTap: () {
-                Navigator.push(context,
-                    MaterialPageRoute(builder: (context) => AboutPage()));
-              },
-            ),
+    //aqui capturo os dados do themeProvider
+    final themeProvider = Provider.of<DynamicDarkMode>(context);
+
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      //habilita suporte ao darkMode no matApp
+      darkTheme: ThemeData.dark(),
+
+      //informa o status do darkMode ao materialApp
+      themeMode: themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+      home: Scaffold(
+        appBar: AppBar(
+          title: Text("To do List"),
+          backgroundColor: Colors.blueGrey,
+          centerTitle: true,
+          actions: <Widget>[
+            IconButton(icon: Icon(Icons.brightness_4),
+                onPressed: () {
+                  //aqui se altera o status do darkMode
+                  //e o provider avisa ao matierial app
+                  setState(() {
+                    //altera entre os temas
+                    themeProvider.isDarkMode?themeProvider.setLightMode():themeProvider.setDarkMode();
+                  });
+                }),
           ],
         ),
+        body: Column(
+          children: <Widget>[
+            Container(
+              padding: EdgeInsets.fromLTRB(17.0, 1.0, 7.0, 1.0),
+              child: Row(
+                children: <Widget>[
+                  Expanded(
+                    child: TextField(
+                      controller: _toDoController,
+                      decoration: InputDecoration(
+                          labelText: "New Task",
+                          labelStyle: TextStyle(color: Colors.blueGrey)),
+                      maxLines: null,
+                    ),
+                  ),
+                  RaisedButton(
+                      color: Colors.blueGrey,
+                      child: Text("ADD"),
+                      textColor: Colors.white,
+                      onPressed: _addToDo)
+                ],
+              ),
+            ),
+            Expanded(
+                child: RefreshIndicator(
+              onRefresh: _refresh,
+              child: ListView.builder(
+                  padding: EdgeInsets.only(top: 10.0),
+                  itemCount: _toDoList.length,
+                  itemBuilder: buildItem),
+            ))
+          ],
+        ),
+        drawer: Drawer(
+          child: buildDrawer(context),
+        ),
       ),
+    );
+  }
+
+  //OBS:PROBLEMA PQ TEM QUE PASSAR O CONTEXT
+  Widget buildDrawer(context){
+    return ListView(
+      padding: EdgeInsets.zero,
+      children: <Widget>[
+        DrawerHeader(
+          child: Text('Drawer Header',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.white, fontSize: 18)),
+          decoration: BoxDecoration(
+            color: Colors.blueGrey,
+          ),
+        ),
+        ListTile(
+          title: Text('Item 1'),
+          onTap: () {
+            Navigator.pop(context);
+          },
+        ),
+        ListTile(
+          title: Text('About us'),
+          onTap: () {
+            Navigator.push(context,
+                MaterialPageRoute(builder: (context) => AboutPage()));
+          },
+        ),
+      ],
     );
   }
 
@@ -217,7 +247,8 @@ class _HomeState extends State<Home> {
       child: CheckboxListTile(
         activeColor: Colors.blueGrey,
         title: Text(_toDoList[index]["title"]),
-        subtitle: Text(_toDoList[index]["date"]),//_toDoList[index]["date"]
+        subtitle: Text(_toDoList[index]["date"]),
+        //_toDoList[index]["date"]
         value: _toDoList[index]["ok"],
         secondary: CircleAvatar(
             backgroundColor: _toDoList[index]["ok"] ? Colors.green : Colors.red,
